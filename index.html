@@ -834,18 +834,15 @@ function deriveSince(){
    if(lim!=null)rows=rows.slice(0,lim);
    return {docs:rows};
  };
+ const makeQuery=(name,filters=[],order=null,lim=null)=>({
+  where(field,op,value){return makeQuery(name,[...filters,{field,op,value}],order,lim);},
+  orderBy(field,dir="asc"){return makeQuery(name,filters,{field,dir},lim);},
+  limit(n){return makeQuery(name,filters,order,n);},
+  onSnapshot(cb,err){const run=()=>{try{cb(snap(name,filters,order,lim));}catch(e){if(err)err(e);}};listeners.push(run);run();return()=>{};},
+  async add(value){const id="local-"+Date.now()+"-"+Math.random().toString(36).slice(2,8);(store[name]||(store[name]={}))[id]={...value};save();notify();return {id};}
+ });
  const db={
-  collection(name){
-   let filters=[],order=null,lim=null;
-   const query={
-    where(field,op,value){return {...query,where:query.where,orderBy:query.orderBy,limit:query.limit,onSnapshot:query.onSnapshot,_filters:[...filters,{field,op,value}],_order:order,_limit:lim};},
-    orderBy(field,dir="asc"){order={field,dir};return query;},
-    limit(n){lim=n;return query;},
-    onSnapshot(cb,err){const run=()=>{try{const qFilters=query._filters||filters;cb(snap(name,qFilters,query._order||order,query._limit??lim));}catch(e){if(err)err(e);}};listeners.push(run);run();return()=>{};},
-    async add(value){const id="local-"+Date.now()+"-"+Math.random().toString(36).slice(2,8);(store[name]||(store[name]={}))[id]={...value};save();notify();return {id};}
-   };
-   return query;
-  },
+  collection(name){return makeQuery(name);},
   doc(path){
    const [name,...parts]=path.split("/");const id=parts.join("/");
    return {
