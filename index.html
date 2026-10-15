@@ -55,7 +55,39 @@ let state={uses:[...DB_ORIGINAL.uso],plans:[...DB_ORIGINAL.plano],trips:[...DB_O
 try{const saved=JSON.parse(localStorage.getItem(KEY)||"null");if(saved)state={...state,...saved,uses:mergeById(DB_ORIGINAL.uso,saved.uses||[]),plans:mergeById(DB_ORIGINAL.plano,saved.plans||[]),trips:mergeById(DB_ORIGINAL.viagens,saved.trips||[])};}catch(e){}
 function mergeById(a,b){const m=new Map();[...a,...b].forEach((x,i)=>m.set(x._id||x.id||`${x.data||""}-${x.periodo||""}-${i}`,x));return [...m.values()]}
 function persist(){localStorage.setItem(KEY,JSON.stringify(state));}
-function img(p){if(!p.foto)return "";const file=p.foto.split("/").pop().split(".")[0]+".jpg";return "imagens/"+file}
+const PRODUCT_IMAGE_URLS={
+"hl-oil":"https://thekshop.ca/cdn/shop/products/Hada_Labo_Gokujyun_Oil_Cleansing_1500x.png?v=1617993044",
+"hl-foam":"https://kokorojapanstore.com/cdn/shop/products/54.jpg?v=1756997504",
+"althea":"https://trueessentials.co.nz/cdn/shop/files/9B2FB59A-B70D-4111-85C8-F61C4CB71F8E.png?v=1778239808&width=1946",
+"noni":"https://dewydemure.com/cdn/shop/files/CELIMAX_The_Real_Noni_Energy_Ampoule_Dewy_Demure_Australia_50ml.jpg?v=1760001761&width=1445",
+"poremizing":"https://www.useeveryouth.com/cdn/shop/files/ChatGPT_Image_22_de_ago._de_2025_10_21_46.png?v=1755868949",
+"b5":"https://images.tcdn.com.br/img/img_prod/1215370/serum_hyalu_b5_repair_la_roche_posay_30ml_243_1_7953235703fd3f3503bed93996595e61.jpg",
+"cicaplast":"https://mylittlefrenchpharmacie.com/69247-large_default/la-roche-posay-cicaplast-baume-b5-ultra-reparateur-apaisant-40ml.jpg",
+"fenzza":"https://dgp88uvg9z4ut.cloudfront.net/Custom/Content/Products/15/28/15289_agua-termal-fenzza-150ml-p117718_z1_638343595716801250.png",
+"effaclar":"https://www.mcdaidpharmacy.ie/cdn/shop/files/La_Roche-Posay_Effaclar_Duo_SPF_30_-6462043.jpg?v=1733917157",
+"pad":"https://ibeauty.md/content/catalog/products/big/ax7ad23a.png",
+"jbsara-nia":"https://down-vn.img.susercontent.com/file/sg-11134207-823oq-mp93nu68q13f70",
+"meditherapy":"https://kosco.s6.cdn-upgates.com/_cache/f/8/f89622794e222e0afba1c4d137ca76c6-meditherapy-retinal-skin-booster-serum-150ml.webp",
+"pdrn-balm":"https://i.ebayimg.com/images/g/~uIAAeSwc-Fp4KGi/s-l500.jpg",
+"adcos":"https://down-br.img.susercontent.com/file/sg-11134201-7qveq-lgarz0xlnrgj2d",
+"anthelios":"https://down-br.img.susercontent.com/file/br-11134207-7r98o-lq0ui7evyl2723",
+"abib":"https://cafe24img.poxo.com/fourco/web/product/tiny/202512/357bab9ebe932b4db38d1cd44b2955a0.jpg",
+"missha-bb":"https://static.wixstatic.com/media/2cddcc_94f1aa34a908478c82001153da05f4c5~mv2.jpg/v1/fill/w_560%2Ch_622%2Cal_c%2Cq_80%2Cusm_0.66_1.00_0.01%2Cenc_avif%2Cquality_auto/2cddcc_94f1aa34a908478c82001153da05f4c5~mv2.jpg",
+"cushion":"https://kokosplus.uz/uploads/products/thumbs/bcd627520797c7d53cc277cefbfd7b66.jpeg",
+"po":"https://images.squarespace-cdn.com/content/v1/613caadd68a4c91bda9905ac/d2e1b240-3d20-4ed7-81b0-d3eb047d775b/kiko_compact_foundation_powder_two_way_cake_100_real_1557291297_be095df6_progressive.jpeg",
+"laneige":"https://28glow.is/cdn/shop/files/DBD13B81-BD20-41BF-A874-1779FB2E1113.jpg?v=1734359776",
+"nivea-lip":"https://cf.shopee.com.br/file/71cc99c973ee0b709979adf40d9bf755",
+"medicube":"https://tshop.r10s.jp/apr-japan/cabinet/11138410/11146954/imgrc0102345156.jpg?fitin=720%3A720"
+};
+function imgFallback(p){
+ const cfg=p.ilustracao_svg||{}, c=cfg.cores||["#f4edf1","#9b5675","#ead6c9"], shape=cfg.shape||"tube";
+ let body="";
+ if(shape==="pump")body='<rect x="43" y="28" width="34" height="9" rx="3" fill="'+c[1]+'"/><rect x="51" y="17" width="18" height="12" rx="2" fill="'+c[1]+'"/><rect x="32" y="34" width="56" height="91" rx="12" fill="'+c[0]+'" stroke="'+c[1]+'" stroke-width="2"/>';
+ else if(shape==="compact"||p.id==="po"||p.id==="cushion")body='<rect x="22" y="29" width="76" height="79" rx="14" fill="'+c[1]+'"/><rect x="27" y="34" width="66" height="69" rx="11" fill="'+c[0]+'"/><rect x="33" y="57" width="54" height="38" rx="7" fill="'+c[2]+'"/>';
+ else body='<path d="M38 24 L82 24 L76 120 Q60 132 44 120 Z" fill="'+c[0]+'" stroke="'+c[1]+'" stroke-width="2"/><rect x="43" y="14" width="34" height="12" rx="3" fill="'+c[1]+'"/><rect x="43" y="59" width="34" height="24" rx="3" fill="'+c[2]+'"/>';
+ return "data:image/svg+xml;charset=UTF-8,"+encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="120" height="140" viewBox="0 0 120 140"><rect width="120" height="140" rx="12" fill="#fffafc"/>'+body+'</svg>');
+}
+function img(p){return PRODUCT_IMAGE_URLS[p.id]||imgFallback(p)}
 function getUses(){return [...state.uses,...state.manual].sort((a,b)=>(b.data||"").localeCompare(a.data||""))}
 function statusLabel(s){return ({feito:"Fiz",nao_feito:"Não fiz",fora_rotina:"Fora da rotina"})[s]||s}
 function statusBadge(s){return s==="Tenho"?"have":s==="Pausado"?"pause":""}
