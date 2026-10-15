@@ -818,6 +818,47 @@ function deriveSince(){
   renderSince();
 }
 
+
+/* Compatibilidade fora do Claude: banco local persistente no navegador. */
+(function(){
+ const KEY="minha-central-skincare-db-v1";
+ let store={};
+ try{store=JSON.parse(localStorage.getItem(KEY)||"{}")||{};}catch(e){store={};}
+ const listeners=[];
+ const save=()=>{try{localStorage.setItem(KEY,JSON.stringify(store));}catch(e){console.warn("Não foi possível salvar os dados localmente.",e);}};
+ const notify=()=>listeners.forEach(fn=>{try{fn();}catch(e){console.error(e);}});
+ const snap=(name,filters=[],order=null,lim=null)=>{
+   let rows=Object.entries(store[name]||{}).map(([id,value])=>({id,data:()=>({...value})}));
+   filters.forEach(f=>{rows=rows.filter(d=>{const v=d.data()[f.field];return f.op==="=="?v===f.value:f.op===">="?v>=f.value:f.op==="<="?v<=f.value:true;});});
+   if(order)rows.sort((a,b)=>{const av=a.data()[order.field],bv=b.data()[order.field];return av===bv?0:(av>bv?1:-1)*(order.dir==="desc"?-1:1);});
+   if(lim!=null)rows=rows.slice(0,lim);
+   return {docs:rows};
+ };
+ const db={
+  collection(name){
+   let filters=[],order=null,lim=null;
+   const query={
+    where(field,op,value){return {...query,where:query.where,orderBy:query.orderBy,limit:query.limit,onSnapshot:query.onSnapshot,_filters:[...filters,{field,op,value}],_order:order,_limit:lim};},
+    orderBy(field,dir="asc"){order={field,dir};return query;},
+    limit(n){lim=n;return query;},
+    onSnapshot(cb,err){const run=()=>{try{const qFilters=query._filters||filters;cb(snap(name,qFilters,query._order||order,query._limit??lim));}catch(e){if(err)err(e);}};listeners.push(run);run();return()=>{};},
+    async add(value){const id="local-"+Date.now()+"-"+Math.random().toString(36).slice(2,8);(store[name]||(store[name]={}))[id]={...value};save();notify();return {id};}
+   };
+   return query;
+  },
+  doc(path){
+   const [name,...parts]=path.split("/");const id=parts.join("/");
+   return {
+    async set(value){(store[name]||(store[name]={}))[id]={...value};save();notify();},
+    async delete(){if(store[name])delete store[name][id];save();notify();},
+    async get(){const v=store[name]?.[id];return {exists:!!v,id,data:()=>v?({...v}):undefined};}
+   };
+  }
+ };
+ window.claude=window.claude||{};
+ window.claude.use=async kind=>kind==="db"?db:null;
+})();
+
 /* ---------- Inicialização ---------- */
 renderSince();renderRoutine();renderFilter();renderInv();renderMx();renderLog();syncLgSt();
 document.getElementById("med-img").innerHTML=imgFor(byId.medicube).replace("<img ","<img style=\"width:96px;height:96px;object-fit:contain;border-radius:12px;background:#fff\" ");
